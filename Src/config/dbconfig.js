@@ -3,10 +3,10 @@ const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 
 const pgPool = new Pool({
-  host: process.env.PGHOST || "db.lufumteuhgpnzzwlesox.supabase.co",
-  port: parseInt(process.env.PGPORT || "5432", 10),
+  host: process.env.PGHOST || "aws-0-ap-southeast-1.pooler.supabase.com",
+  port: parseInt(process.env.PGPORT || "6543", 10),
   database: process.env.PGDATABASE || "postgres",
-  user: process.env.PGUSER || "postgres",
+  user: process.env.PGUSER || "postgres.lufumteuhgpnzzwlesox",
   password: process.env.PGPASSWORD || "Transporter#2026!Secure",
   ssl: { rejectUnauthorized: false },
   max: 20,
