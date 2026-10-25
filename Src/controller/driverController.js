@@ -1,6 +1,43 @@
 const DriverModel = require("../models/DriverModel");
+const multer = require("multer");
+
+// Multer in-memory storage for document uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit per file
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/jpg",
+    ];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          "Invalid file type. Only PDF and image files (JPG, PNG, WEBP) are allowed."
+        ),
+        false
+      );
+    }
+  },
+});
+
+const uploadDriverDocs = upload.fields([
+  { name: "dl_doc", maxCount: 1 },
+  { name: "address_doc", maxCount: 1 },
+  { name: "image", maxCount: 1 },
+]);
 
 class DriverController {
+  static uploadMiddleware = uploadDriverDocs;
+
   // Get all drivers
   static async getAllDrivers(req, res) {
     try {
@@ -16,12 +53,9 @@ class DriverController {
   static async getDriversByVendorId(req, res) {
     try {
       const { vendorId } = req.params;
-      
-      // Validate vendorId
       if (!vendorId || isNaN(vendorId)) {
         return res.status(400).json({ success: false, error: "Valid vendor ID is required." });
       }
-      
       const drivers = await DriverModel.getByVendorId(vendorId);
       res.json({ success: true, data: drivers });
     } catch (error) {
@@ -34,12 +68,9 @@ class DriverController {
   static async getDriverById(req, res) {
     try {
       const { id } = req.params;
-      
-      // Validate driver ID
       if (!id || isNaN(id)) {
         return res.status(400).json({ success: false, error: "Valid driver ID is required." });
       }
-      
       const driver = await DriverModel.getById(id);
       if (!driver) {
         return res.status(404).json({ success: false, message: "Driver not found." });
@@ -51,48 +82,68 @@ class DriverController {
     }
   }
 
+  // Get driver document stream (DL, Address, Photo)
+  static async getDriverDocument(req, res) {
+    try {
+      const { id, docType } = req.params;
+      if (!id || isNaN(id)) {
+        return res.status(400).json({ success: false, error: "Valid driver ID is required." });
+      }
+
+      const doc = await DriverModel.getDriverDocument(id, docType);
+      if (!doc || !doc.data) {
+        return res.status(404).json({ success: false, error: "Document not found." });
+      }
+
+      const fileName = doc.name || `driver_${id}_${docType}`;
+      const contentType = doc.type || "application/octet-stream";
+
+      res.set({
+        "Content-Type": contentType,
+        "Content-Length": doc.data.length,
+        "Content-Disposition": `inline; filename="${fileName}"`,
+        "Cache-Control": "public, max-age=31536000",
+      });
+
+      res.send(doc.data);
+    } catch (error) {
+      console.error("Get driver document error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to fetch driver document." });
+    }
+  }
+
   // Create new driver
   static async createDriver(req, res) {
     try {
       const data = req.body;
-      
-      // Validate required fields
+      const files = req.files || {};
+
       if (!data.vendor_id) {
         return res.status(400).json({ success: false, error: "Vendor ID is required." });
       }
-      
       if (!data.driver_name) {
         return res.status(400).json({ success: false, error: "Driver name is required." });
       }
-      
-      // Validate vendor_id is numeric
       if (isNaN(data.vendor_id)) {
         return res.status(400).json({ success: false, error: "Vendor ID must be a valid number." });
       }
-      
-      // Add created_by if available from auth middleware
       if (req.user && req.user.userId) {
         data.created_by = req.user.userId;
       }
-      
-      const result = await DriverModel.create(data);
+
+      const result = await DriverModel.create(data, files);
       res.status(201).json({ success: true, message: "Driver created successfully.", data: result });
     } catch (error) {
       console.error("Create driver controller error:", error);
-      
-      // Handle foreign key constraint error
-      if (error.message && (error.message.includes('FK_DRIVER_VENDOR') || error.message.includes('FOREIGN KEY'))) {
+      if (error.message && (error.message.includes("FK_DRIVER_VENDOR") || error.message.includes("FOREIGN KEY"))) {
         return res.status(400).json({ success: false, error: "Invalid vendor ID. Vendor does not exist." });
       }
-      
-      // Handle duplicate key error
-      if (error.message && error.message.includes('PRIMARY KEY')) {
+      if (error.message && error.message.includes("PRIMARY KEY")) {
         return res.status(400).json({ success: false, error: "Driver ID already exists. Please try again." });
       }
-      
-      res.status(500).json({ 
-        success: false, 
-        error: error.message || "Failed to create driver." 
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to create driver.",
       });
     }
   }
@@ -102,41 +153,33 @@ class DriverController {
     try {
       const { id } = req.params;
       const data = req.body;
-      
-      // Validate driver ID
+      const files = req.files || {};
+
       if (!id || isNaN(id)) {
         return res.status(400).json({ success: false, error: "Valid driver ID is required." });
       }
-      
-      // Validate required fields
       if (!data.driver_name) {
         return res.status(400).json({ success: false, error: "Driver name is required." });
       }
-      
-      // Validate vendor_id if provided
       if (data.vendor_id && isNaN(data.vendor_id)) {
         return res.status(400).json({ success: false, error: "Vendor ID must be a valid number." });
       }
-      
-      // Check if driver exists
+
       const existingDriver = await DriverModel.getById(id);
       if (!existingDriver) {
         return res.status(404).json({ success: false, error: "Driver not found." });
       }
-      
-      await DriverModel.update(id, data);
+
+      await DriverModel.update(id, data, files);
       res.json({ success: true, message: "Driver updated successfully." });
     } catch (error) {
       console.error("Update driver controller error:", error);
-      
-      // Handle foreign key constraint error
-      if (error.message && (error.message.includes('FK_DRIVER_VENDOR') || error.message.includes('FOREIGN KEY'))) {
+      if (error.message && (error.message.includes("FK_DRIVER_VENDOR") || error.message.includes("FOREIGN KEY"))) {
         return res.status(400).json({ success: false, error: "Invalid vendor ID. Vendor does not exist." });
       }
-      
-      res.status(500).json({ 
-        success: false, 
-        error: error.message || "Failed to update driver." 
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to update driver.",
       });
     }
   }
@@ -145,34 +188,28 @@ class DriverController {
   static async deleteDriver(req, res) {
     try {
       const { id } = req.params;
-      
-      // Validate driver ID
       if (!id || isNaN(id)) {
         return res.status(400).json({ success: false, error: "Valid driver ID is required." });
       }
-      
-      // Check if driver exists
+
       const existingDriver = await DriverModel.getById(id);
       if (!existingDriver) {
         return res.status(404).json({ success: false, error: "Driver not found." });
       }
-      
+
       await DriverModel.delete(id);
       res.json({ success: true, message: "Driver deleted successfully." });
     } catch (error) {
       console.error("Delete driver controller error:", error);
-      
-      // Handle foreign key constraint error (if driver is referenced in other tables)
-      if (error.message && error.message.includes('FOREIGN KEY')) {
-        return res.status(400).json({ 
-          success: false, 
-          error: "Cannot delete driver. Driver is being used in other records." 
+      if (error.message && error.message.includes("FOREIGN KEY")) {
+        return res.status(400).json({
+          success: false,
+          error: "Cannot delete driver. Driver is being used in other records.",
         });
       }
-      
-      res.status(500).json({ 
-        success: false, 
-        error: error.message || "Failed to delete driver." 
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to delete driver.",
       });
     }
   }

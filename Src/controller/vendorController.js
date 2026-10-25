@@ -11,12 +11,23 @@ const upload = multer({
     files: 3, // Maximum 3 files
   },
   fileFilter: (req, file, cb) => {
-    const allowedMimes = ["application/pdf"]; // Restrict to PDFs only
+    const allowedMimes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/jpg",
+    ];
 
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Invalid file type. Only PDF files are allowed."), false);
+      cb(
+        new Error(
+          "Invalid file type. Only PDF and image files (JPG, PNG, WEBP) are allowed."
+        ),
+        false
+      );
     }
   },
 });
