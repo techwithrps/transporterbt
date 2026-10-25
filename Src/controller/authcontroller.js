@@ -3,7 +3,8 @@ const jwt = require("jsonwebtoken");
 const { pool, sql } = require("../config/dbconfig");
 
 exports.signup = async (req, res) => {
-  const { name, email, phone, password, role } = req.body;
+  let { name, email, phone, password, role } = req.body;
+    role = role ? (role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()) : "Customer";
 
   try {
     // Input validation
@@ -45,11 +46,12 @@ exports.signup = async (req, res) => {
     const user = result.recordset[0];
 
     // Generate JWT token
+    const normalizedRole = user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()) : "Customer";
     const token = jwt.sign(
       {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: normalizedRole,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRATION }
@@ -62,7 +64,7 @@ exports.signup = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: normalizedRole,
       },
     });
   } catch (error) {
@@ -116,11 +118,12 @@ exports.login = async (req, res) => {
     }
 
     // Generate JWT token
+    const normalizedRole = user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()) : "Customer";
     const token = jwt.sign(
       {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: normalizedRole,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRATION }
@@ -133,7 +136,7 @@ exports.login = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: normalizedRole,
       },
     });
   } catch (error) {

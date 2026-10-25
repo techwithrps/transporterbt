@@ -3,7 +3,7 @@ const { pool, sql } = require("../config/dbconfig");
 // Fetch all locations
 const getAllLocations = async () => {
   try {
-    const result = await pool.request().query("SELECT * FROM LOCATION_MASTER ORDER BY LOCATION_NAME ASC");
+    const result = await pool.request().query("SELECT * FROM LOCATION_MASTER ORDER BY location_id ASC");
     return result.recordset.map(loc => ({
       ...loc,
       LOCATION_NAME: loc.LOCATION_NAME || loc.location_name,
