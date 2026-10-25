@@ -64,13 +64,30 @@ app.use("/api/customers", CustomerMasterRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/transporterlist", transportlistroutes);
 app.use("/api/services", serviceroutes);
-app.use("/api", vendorRoutes); // Add this line
+app.use("/api", vendorRoutes);
 app.use("/api", driverRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api", equipmentRoutes);
 app.use("/api", vehiicleRoutes);
 app.use("/api", asnRoutes);
-app.use("/api/payment-receipts", paymentReceiptRoutes); // Payment receipts routes
+app.use("/api/payment-receipts", paymentReceiptRoutes);
+
+// Dual-mount without /api prefix for bulletproof frontend compatibility
+app.use("/auth", authRoutes);
+app.use("/users", UserRoutes);
+app.use("/transport-requests", transportRequestRoutes);
+app.use("/customers", CustomerMasterRoutes);
+app.use("/transactions", transactionRoutes);
+app.use("/transporterlist", transportlistroutes);
+app.use("/services", serviceroutes);
+app.use("/locations", locationRoutes);
+app.use("/payment-receipts", paymentReceiptRoutes);
+app.use("/", vendorRoutes);
+app.use("/", driverRoutes);
+app.use("/", equipmentRoutes);
+app.use("/", vehiicleRoutes);
+app.use("/", asnRoutes);
+app.use("/", transporterRoutes); // Payment receipts routes
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
