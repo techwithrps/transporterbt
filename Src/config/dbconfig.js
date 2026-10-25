@@ -2,12 +2,40 @@ const { Pool } = require("pg");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 
+// Smart configuration resolver ensuring 100% cloud / Render / Supabase compatibility
+function resolveDbConfig() {
+  let host = process.env.PGHOST || "aws-0-ap-southeast-1.pooler.supabase.com";
+  let port = parseInt(process.env.PGPORT || "6543", 10);
+  let user = process.env.PGUSER || "postgres.lufumteuhgpnzzwlesox";
+  let password = process.env.PGPASSWORD || "Transporter#2026!Secure";
+  let database = process.env.PGDATABASE || "postgres";
+
+  // Auto-rectify IPv6 host for platforms without IPv6 support (like Render)
+  if (!process.env.PGHOST || host.includes("db.lufumteuhgpnzzwlesox.supabase.co")) {
+    host = "aws-0-ap-southeast-1.pooler.supabase.com";
+    port = 6543;
+  }
+
+  // Auto-rectify user on Supabase pooler (requires tenant suffix)
+  if (host.includes("pooler.supabase.com") && (!user || user === "postgres")) {
+    user = "postgres.lufumteuhgpnzzwlesox";
+  }
+
+  // Handle password truncation if # was treated as comment in env parsers
+  if (!password || password === "Transporter") {
+    password = "Transporter#2026!Secure";
+  }
+
+  return { host, port, user, password, database };
+}
+
+const dbConfig = resolveDbConfig();
 const pgPool = new Pool({
-  host: process.env.PGHOST || "aws-0-ap-southeast-1.pooler.supabase.com",
-  port: parseInt(process.env.PGPORT || "6543", 10),
-  database: process.env.PGDATABASE || "postgres",
-  user: process.env.PGUSER || "postgres.lufumteuhgpnzzwlesox",
-  password: process.env.PGPASSWORD || "Transporter#2026!Secure",
+  host: dbConfig.host,
+  port: dbConfig.port,
+  database: dbConfig.database,
+  user: dbConfig.user,
+  password: dbConfig.password,
   ssl: { rejectUnauthorized: false },
   max: 20,
   idleTimeoutMillis: 30000,
