@@ -88,7 +88,7 @@ class TransportRequest {
         )
         `);
 
-      return { success: true };
+      return { success: true, id: result.recordset[0]?.id, ...result.recordset[0] };
     } catch (error) {
       console.error("Create transport request error:", error);
       throw error;

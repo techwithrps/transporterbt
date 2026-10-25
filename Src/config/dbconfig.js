@@ -51,7 +51,13 @@ function transformQuery(sqlText, inputs = {}) {
     query = query.trim().replace(/;?$/, "") + " RETURNING " + cols;
   }
 
-  // 3. Handle CONVERT functions
+  // 3. Handle ISNULL -> COALESCE
+  query = query.replace(/ISNULL\s*\(/gi, "COALESCE(");
+
+  // 4. Handle GETDATE() -> CURRENT_TIMESTAMP
+  query = query.replace(/GETDATE\s*\(\s*\)/gi, "CURRENT_TIMESTAMP");
+
+  // 5. Handle CONVERT functions
   query = query
     .replace(
       /CONVERT\s*\(\s*varchar\s*,\s*([^,)]+)\s*,\s*120\s*\)/gi,
@@ -68,7 +74,7 @@ function transformQuery(sqlText, inputs = {}) {
     .replace(/CONVERT\s*\(\s*date\s*,\s*([^)]+)\s*\)/gi, "($1)::date")
     .replace(/CONVERT\s*\(\s*DATE\s*,\s*([^)]+)\s*\)/gi, "($1)::date");
 
-  // 4. Map @params in order of appearance
+  // 6. Map @params in order of appearance
   let paramCount = 0;
   const paramMap = {};
   const values = [];
@@ -93,13 +99,16 @@ function transformQuery(sqlText, inputs = {}) {
 
 // Request class emulating mssql Request
 class MssqlRequestShim {
-  constructor() {
+  constructor(executor = pgPool) {
+    this.executor = executor;
     this.inputs = {};
   }
 
   input(name, type, value) {
-    if (value === undefined) {
+    if (arguments.length === 2) {
       value = type;
+    } else if (value === undefined) {
+      value = null;
     }
     this.inputs[name] = value;
     return this;
@@ -108,7 +117,7 @@ class MssqlRequestShim {
   async query(sqlText) {
     const { query, values } = transformQuery(sqlText, this.inputs);
     try {
-      const res = await pgPool.query(query, values);
+      const res = await this.executor.query(query, values);
       return {
         recordset: res.rows,
         recordsets: [res.rows],
@@ -123,10 +132,49 @@ class MssqlRequestShim {
   }
 }
 
+// Transaction class emulating mssql Transaction
+class MssqlTransactionShim {
+  constructor(pool) {
+    this.pool = pool;
+    this.client = null;
+  }
+
+  async begin() {
+    this.client = await pgPool.connect();
+    await this.client.query("BEGIN");
+    return this;
+  }
+
+  request() {
+    return new MssqlRequestShim(this.client || pgPool);
+  }
+
+  async commit() {
+    if (this.client) {
+      await this.client.query("COMMIT");
+      this.client.release();
+      this.client = null;
+    }
+  }
+
+  async rollback() {
+    if (this.client) {
+      try {
+        await this.client.query("ROLLBACK");
+      } catch (e) {}
+      this.client.release();
+      this.client = null;
+    }
+  }
+}
+
 // Pool wrapper
 const pool = {
   request() {
-    return new MssqlRequestShim();
+    return new MssqlRequestShim(pgPool);
+  },
+  transaction() {
+    return new MssqlTransactionShim(this);
   },
   async connect() {
     return this;
@@ -137,31 +185,25 @@ const pool = {
   },
 };
 
-// SQL Data Type Shims
-const createType = () => ({});
-const sql = {
-  VarChar: createType,
-  NVarChar: createType,
-  Text: createType,
-  Int: createType,
-  BigInt: createType,
-  SmallInt: createType,
-  TinyInt: createType,
-  Bit: createType,
-  Decimal: createType,
-  Float: createType,
-  Real: createType,
-  Date: createType,
-  Time: createType,
-  DateTime: createType,
-  DateTime2: createType,
-  MAX: -1,
-  ConnectionPool: class {
-    constructor() {
-      return pool;
-    }
+// SQL Data Type Shims - dynamic Proxy so ANY type or call works
+const createType = (...args) => createType;
+createType.toString = () => "type";
+const sql = new Proxy(
+  {
+    MAX: -1,
+    ConnectionPool: class {
+      constructor() {
+        return pool;
+      }
+    },
   },
-};
+  {
+    get(target, prop) {
+      if (prop in target) return target[prop];
+      return createType;
+    },
+  }
+);
 
 const connectDB = async () => {
   try {
