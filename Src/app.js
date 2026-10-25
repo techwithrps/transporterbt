@@ -55,6 +55,7 @@ const equipmentRoutes = require("./routes/equipmentRoutes"); // Import equipment
 const vehiicleRoutes = require("./routes/vehicleRoutes"); // Import vehicle routes
 const asnRoutes = require("./routes/asnRoutes"); // Import ASN routes
 const paymentReceiptRoutes = require("./routes/paymentReceiptRoutes"); // Import payment receipt routes
+const containerTrackingRoutes = require("./routes/containerTrackingRoutes");
 // Mount routes with more specific routes first
 app.use("/api/auth", authRoutes);
 app.use("/api/users", UserRoutes);
@@ -71,6 +72,7 @@ app.use("/api", equipmentRoutes);
 app.use("/api", vehiicleRoutes);
 app.use("/api", asnRoutes);
 app.use("/api/payment-receipts", paymentReceiptRoutes);
+app.use("/api/containers", containerTrackingRoutes);
 
 // Dual-mount without /api prefix for bulletproof frontend compatibility
 app.use("/auth", authRoutes);
@@ -82,6 +84,7 @@ app.use("/transporterlist", transportlistroutes);
 app.use("/services", serviceroutes);
 app.use("/locations", locationRoutes);
 app.use("/payment-receipts", paymentReceiptRoutes);
+app.use("/containers", containerTrackingRoutes);
 app.use("/", vendorRoutes);
 app.use("/", driverRoutes);
 app.use("/", equipmentRoutes);

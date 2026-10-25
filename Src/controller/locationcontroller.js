@@ -1,4 +1,5 @@
 const locationModel = require("../models/LocationModel");
+const { pool, sql } = require("../config/dbconfig");
 
 // Controller to handle GET request
 const getLocations = async (req, res) => {
@@ -24,7 +25,21 @@ const createLocation = async (req, res) => {
   }
 };
 
+// Controller to handle DELETE request
+const deleteLocation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.request()
+      .input("id", sql.Int, id)
+      .query("DELETE FROM location_master WHERE location_id = @id");
+    res.status(200).json({ success: true, message: "Location deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getLocations,
   createLocation,
+  deleteLocation,
 };
