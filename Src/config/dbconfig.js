@@ -146,9 +146,18 @@ class MssqlRequestShim {
     const { query, values } = transformQuery(sqlText, this.inputs);
     try {
       const res = await this.executor.query(query, values);
+      const mappedRows = (res.rows || []).map((row) => {
+        if (!row || typeof row !== "object") return row;
+        const dual = { ...row };
+        for (const [key, val] of Object.entries(row)) {
+          dual[key.toUpperCase()] = val;
+          dual[key.toLowerCase()] = val;
+        }
+        return dual;
+      });
       return {
-        recordset: res.rows,
-        recordsets: [res.rows],
+        recordset: mappedRows,
+        recordsets: [mappedRows],
         rowsAffected: [res.rowCount || 0],
       };
     } catch (err) {
