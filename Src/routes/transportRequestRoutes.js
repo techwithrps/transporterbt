@@ -29,6 +29,7 @@ router.put("/update/:id", updateRequest);
 
 // Admin routes
 router.get("/all", auth, getAllRequests);
+router.get("/", auth, getAllRequests);
 router.get("/filtered", auth, getFilteredRequests);
 router.put("/:requestId/status", auth, adminAuth, updateRequestStatus);
 
