@@ -62,7 +62,7 @@ function transformQuery(sqlText, inputs = {}) {
 
   // 2. Handle OUTPUT INSERTED.* -> RETURNING *
   const outputMatch = query.match(
-    /OUTPUT\s+INSERTED\.([\w\*,\s\.INSERTED]+?)(?=\s+VALUES|\s+SELECT|\s*$)/i
+    /OUTPUT\s+INSERTED\.([\w\*,\s\.INSERTED]+?)(?=\s+VALUES|\s+SELECT|\s+WHERE|\s*$)/i
   );
   if (outputMatch) {
     const cols = outputMatch[1].replace(/INSERTED\./gi, "").trim();
@@ -101,6 +101,11 @@ function transformQuery(sqlText, inputs = {}) {
     )
     .replace(/CONVERT\s*\(\s*date\s*,\s*([^)]+)\s*\)/gi, "($1)::date")
     .replace(/CONVERT\s*\(\s*DATE\s*,\s*([^)]+)\s*\)/gi, "($1)::date");
+
+    // 7. Handle SCOPE_IDENTITY()
+  query = query.replace(/;\s*SELECT\s+SCOPE_IDENTITY\(\)\s*(?:AS\s+([a-zA-Z0-9_]+))?;?/gi, (m, col) => {
+    return ' RETURNING ' + (col || 'id');
+  });
 
   // 6. Map @params in order of appearance
   let paramCount = 0;

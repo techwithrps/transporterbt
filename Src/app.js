@@ -71,9 +71,11 @@ app.use("/api", driverRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/fleet-equipment", fleetEquipmentRoutes);
 app.use("/api/vehicles", vehiicleRoutes);
+app.use("/api/equipment", equipmentRoutes);
 app.use("/api", equipmentRoutes);
 app.use("/api", fleetEquipmentRoutes);
 app.use("/api", vehiicleRoutes);
+app.use("/api/asn", asnRoutes);
 app.use("/api", asnRoutes);
 app.use("/api/payment-receipts", paymentReceiptRoutes);
 app.use("/api/containers", containerTrackingRoutes);
@@ -93,9 +95,11 @@ app.use("/", vendorRoutes);
 app.use("/", driverRoutes);
 app.use("/fleet-equipment", fleetEquipmentRoutes);
 app.use("/vehicles", vehiicleRoutes);
+app.use("/equipment", equipmentRoutes);
 app.use("/", equipmentRoutes);
 app.use("/", fleetEquipmentRoutes);
 app.use("/", vehiicleRoutes);
+app.use("/asn", asnRoutes);
 app.use("/", asnRoutes);
 app.use("/", transporterRoutes); // Payment receipts routes
 app.get("/", (req, res) => {

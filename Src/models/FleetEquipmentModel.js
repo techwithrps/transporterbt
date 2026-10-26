@@ -62,14 +62,18 @@ class FleetEquipmentModel {
         created_by
       } = data;
 
+      const maxRes = await pool.request().query("SELECT COALESCE(MAX(equipment_id), 0) + 1 AS next_id FROM fleet_equipment_master");
+      const nextId = maxRes.recordset[0].next_id;
+
       const result = await pool
         .request()
+        .input("equipment_id", sql.Numeric(18, 0), nextId)
         .input("equipment_name", sql.VarChar(100), equipment_name?.trim())
         .input("equipment_type", sql.VarChar(50), equipment_type?.trim() || null)
         .input("equipment_model", sql.VarChar(50), equipment_model?.trim() || null)
         .input("equipment_make", sql.VarChar(50), equipment_make?.trim() || null)
         .input("equipment_year", sql.Int, equipment_year ? parseInt(equipment_year) : null)
-        .input("equipment_capacity", sql.VarChar(50), equipment_capacity?.trim() || null)
+        .input("equipment_capacity", sql.VarChar(50), equipment_capacity ? String(equipment_capacity).trim() : null)
         .input("equipment_status", sql.VarChar(20), equipment_status?.trim() || 'Active')
         .input("equipment_location", sql.VarChar(100), equipment_location?.trim() || null)
         .input("equipment_purchase_date", sql.Date, this.parseDate(equipment_purchase_date))
@@ -83,23 +87,23 @@ class FleetEquipmentModel {
         .input("created_on", sql.DateTime, new Date())
         .query(`
           INSERT INTO FLEET_EQUIPMENT_MASTER (
-            EQUIPMENT_NAME, EQUIPMENT_TYPE, EQUIPMENT_MODEL, EQUIPMENT_MAKE, 
+            EQUIPMENT_ID, EQUIPMENT_NAME, EQUIPMENT_TYPE, EQUIPMENT_MODEL, EQUIPMENT_MAKE, 
             EQUIPMENT_YEAR, EQUIPMENT_CAPACITY, EQUIPMENT_STATUS, EQUIPMENT_LOCATION, 
             EQUIPMENT_PURCHASE_DATE, EQUIPMENT_PURCHASE_PRICE, EQUIPMENT_CURRENT_VALUE, 
             EQUIPMENT_MAINTENANCE_SCHEDULE, EQUIPMENT_LAST_MAINTENANCE_DATE, 
             EQUIPMENT_NEXT_MAINTENANCE_DATE, EQUIPMENT_NOTES, CREATED_BY, CREATED_ON
           ) 
           VALUES (
-            @equipment_name, @equipment_type, @equipment_model, @equipment_make, 
+            @equipment_id, @equipment_name, @equipment_type, @equipment_model, @equipment_make, 
             @equipment_year, @equipment_capacity, @equipment_status, @equipment_location, 
             @equipment_purchase_date, @equipment_purchase_price, @equipment_current_value, 
             @equipment_maintenance_schedule, @equipment_last_maintenance_date, 
             @equipment_next_maintenance_date, @equipment_notes, @created_by, @created_on
-          );
-          SELECT SCOPE_IDENTITY() AS equipment_id;
+          )
+          RETURNING EQUIPMENT_ID AS equipment_id;
         `);
 
-      return { success: true, equipment_id: result.recordset[0].equipment_id };
+      return { success: true, equipment_id: (result.recordset && result.recordset[0] && result.recordset[0].equipment_id) || nextId };
     } catch (error) {
       console.error("Create fleet equipment error:", error);
       throw error;
@@ -135,7 +139,7 @@ class FleetEquipmentModel {
         .input("equipment_model", sql.VarChar(50), equipment_model?.trim() || null)
         .input("equipment_make", sql.VarChar(50), equipment_make?.trim() || null)
         .input("equipment_year", sql.Int, equipment_year ? parseInt(equipment_year) : null)
-        .input("equipment_capacity", sql.VarChar(50), equipment_capacity?.trim() || null)
+        .input("equipment_capacity", sql.VarChar(50), equipment_capacity ? String(equipment_capacity).trim() : null)
         .input("equipment_status", sql.VarChar(20), equipment_status?.trim() || 'Active')
         .input("equipment_location", sql.VarChar(100), equipment_location?.trim() || null)
         .input("equipment_purchase_date", sql.Date, this.parseDate(equipment_purchase_date))
