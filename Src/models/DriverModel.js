@@ -53,7 +53,7 @@ class DriverModel {
           MAX(t.license_number) AS DL_NO,
           NULL AS DL_RENEWABLE_DATE,
           NULL AS SALARY,
-          "Y" AS ACTIVE_FLAGE,
+          'Y' AS ACTIVE_FLAGE,
           NULL AS CREATED_BY,
           NULL AS CREATED_ON,
           NULL AS IMAGE,
@@ -79,9 +79,9 @@ class DriverModel {
           NULL AS image_name,
           NULL AS image_type,
           MAX(t.transporter_name) AS VENDOR_NAME,
-          \HISTORIC AS VENDOR_CODE
+          'HISTORIC' AS VENDOR_CODE
         FROM transporter_details t
-        WHERE t.driver_name IS NOT NULL AND LTRIM(RTRIM(t.driver_name)) != \          AND NOT EXISTS (
+        WHERE t.driver_name IS NOT NULL AND LTRIM(RTRIM(t.driver_name)) != '' AND NOT EXISTS (
             SELECT 1 FROM DRIVER_MASTER dm WHERE UPPER(LTRIM(RTRIM(dm.DRIVER_NAME))) = UPPER(LTRIM(RTRIM(t.driver_name)))
           )
         GROUP BY t.driver_name

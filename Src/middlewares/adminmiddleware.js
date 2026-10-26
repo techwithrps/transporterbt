@@ -7,8 +7,9 @@ const adminAuth = async (req, res, next) => {
       });
     }
 
-    // Change "admin" to "Admin" to match the frontend role
-    if (req.user.role !== "Admin") {
+    // Case-insensitive role check for Admin
+    const userRole = (req.user.role || "").trim().toLowerCase();
+    if (userRole !== "admin") {
       return res.status(403).json({
         success: false,
         message: "Access denied. Admin only.",

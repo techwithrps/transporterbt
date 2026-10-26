@@ -51,7 +51,8 @@ const serviceroutes = require("./routes/serviceroutes");
 const vendorRoutes = require("./routes/vendorRoutes"); // Add this line
 const driverRoutes = require("./routes/driverRoutes");
 const locationRoutes = require("./routes/locationroutes"); // Import location routes
-const equipmentRoutes = require("./routes/equipmentRoutes"); // Import equipment routes
+const equipmentRoutes = require("./routes/equipmentRoutes");
+const fleetEquipmentRoutes = require("./routes/fleetEquipmentRoutes"); // Import equipment routes
 const vehiicleRoutes = require("./routes/vehicleRoutes"); // Import vehicle routes
 const asnRoutes = require("./routes/asnRoutes"); // Import ASN routes
 const paymentReceiptRoutes = require("./routes/paymentReceiptRoutes"); // Import payment receipt routes
@@ -68,7 +69,10 @@ app.use("/api/services", serviceroutes);
 app.use("/api", vendorRoutes);
 app.use("/api", driverRoutes);
 app.use("/api/locations", locationRoutes);
+app.use("/api/fleet-equipment", fleetEquipmentRoutes);
+app.use("/api/vehicles", vehiicleRoutes);
 app.use("/api", equipmentRoutes);
+app.use("/api", fleetEquipmentRoutes);
 app.use("/api", vehiicleRoutes);
 app.use("/api", asnRoutes);
 app.use("/api/payment-receipts", paymentReceiptRoutes);
@@ -87,7 +91,10 @@ app.use("/payment-receipts", paymentReceiptRoutes);
 app.use("/containers", containerTrackingRoutes);
 app.use("/", vendorRoutes);
 app.use("/", driverRoutes);
+app.use("/fleet-equipment", fleetEquipmentRoutes);
+app.use("/vehicles", vehiicleRoutes);
 app.use("/", equipmentRoutes);
+app.use("/", fleetEquipmentRoutes);
 app.use("/", vehiicleRoutes);
 app.use("/", asnRoutes);
 app.use("/", transporterRoutes); // Payment receipts routes
